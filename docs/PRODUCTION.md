@@ -91,3 +91,8 @@ Only error-level logs are forwarded there.
 - verify private gallery unlock
 - verify project create / update / delete
 - verify WhatsApp handoff link generation
+
+Additional docs:
+
+- [`DEPLOY.md`](./DEPLOY.md)
+- [`GO-LIVE-CHECKLIST.md`](./GO-LIVE-CHECKLIST.md)

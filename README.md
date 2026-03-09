@@ -31,6 +31,9 @@ PickMe supports two storage modes:
 Production setup, env, backup, and restore guidance:
 
 - [`docs/PRODUCTION.md`](./docs/PRODUCTION.md)
+- [`docs/DEPLOY.md`](./docs/DEPLOY.md)
+- [`docs/GO-LIVE-CHECKLIST.md`](./docs/GO-LIVE-CHECKLIST.md)
+- [`.env.production.example`](./.env.production.example)
 
 ## Backups
 
@@ -44,16 +47,3 @@ npm run restore:projects -- ./backups/projects.json
 - Admin protection becomes active when `ADMIN_PASSWORD` is set.
 - Private gallery passwords are encrypted at rest.
 - Share links use `APP_URL` in production.
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
-# pickme
-# pickme
