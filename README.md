@@ -32,6 +32,7 @@ Production setup, env, backup, and restore guidance:
 
 - [`docs/PRODUCTION.md`](./docs/PRODUCTION.md)
 - [`docs/DEPLOY.md`](./docs/DEPLOY.md)
+- [`docs/VERCEL.md`](./docs/VERCEL.md)
 - [`docs/GO-LIVE-CHECKLIST.md`](./docs/GO-LIVE-CHECKLIST.md)
 - [`.env.production.example`](./.env.production.example)
 

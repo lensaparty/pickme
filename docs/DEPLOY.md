@@ -45,6 +45,7 @@ Notes:
 
 - Vercel filesystem is not suitable for persistent app data. Use `DATABASE_URL`.
 - Do not rely on `PICKME_DATA_DIR` in Vercel production.
+- See [`VERCEL.md`](./VERCEL.md) for the exact setup.
 
 ## Option 2: Railway / Render
 
@@ -128,4 +129,3 @@ Use this order:
 5. test client selection + WhatsApp handoff
 6. confirm backup script works
 7. go live
-

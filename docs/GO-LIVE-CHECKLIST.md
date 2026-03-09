@@ -57,3 +57,6 @@
 - `APP_URL` matches live domain exactly
 - one real end-to-end test project succeeds
 
+If deploying on Vercel:
+
+- follow [`VERCEL.md`](./VERCEL.md)
