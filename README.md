@@ -1,28 +1,49 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+PickMe by Lensaparty is a premium photo selection workflow built with Next.js App Router, React, Tailwind, and a production-oriented admin/client flow.
 
-## Getting Started
+## Local development
 
-First, run the development server:
+Run the development server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Core commands
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run lint
+npm run test
+npm run build
+npm run check:production
+```
 
-## Learn More
+## Storage
 
-To learn more about Next.js, take a look at the following resources:
+PickMe supports two storage modes:
+
+- local file store by default
+- Postgres when `DATABASE_URL` is set
+
+## Production
+
+Production setup, env, backup, and restore guidance:
+
+- [`docs/PRODUCTION.md`](./docs/PRODUCTION.md)
+
+## Backups
+
+```bash
+npm run backup:projects
+npm run restore:projects -- ./backups/projects.json
+```
+
+## Notes
+
+- Admin protection becomes active when `ADMIN_PASSWORD` is set.
+- Private gallery passwords are encrypted at rest.
+- Share links use `APP_URL` in production.
 
 - [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
 - [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
