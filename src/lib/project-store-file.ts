@@ -77,6 +77,7 @@ export async function updateProjectByCodeInFileStore(
     Pick<
       Project,
       | "name"
+      | "ownerUserId"
       | "clientName"
       | "eventType"
       | "expiresAt"
@@ -116,4 +117,3 @@ export async function deleteProjectByCodeFromFileStore(code: string) {
   await writeProjects(nextProjects);
   return true;
 }
-

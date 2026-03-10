@@ -10,7 +10,8 @@ import { FormError } from "@/components/ui/form-error";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Project } from "@/lib/types";
+import { Select } from "@/components/ui/select";
+import { AuthActor, Project, User } from "@/lib/types";
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -22,7 +23,7 @@ function SubmitButton() {
   );
 }
 
-export function ProjectSettingsForm({ project }: { project: Project }) {
+export function ProjectSettingsForm({ project, actor, users }: { project: Project; actor: AuthActor; users: User[] }) {
   const initialState: ManageProjectFormState = { error: "", success: "" };
   const updateAction = updateProjectSettingsAction.bind(null, project.code);
   const [state, formAction] = useActionState(updateAction, initialState);
@@ -33,6 +34,18 @@ export function ProjectSettingsForm({ project }: { project: Project }) {
       {state.success ? (
         <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">
           {state.success}
+        </div>
+      ) : null}
+
+      {actor.kind === "super_admin" && users.length > 0 ? (
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-white">Project owner</label>
+          <Select name="ownerUserId" defaultValue={project.ownerUserId || users[0]?.id || ""}>
+            <option value="">Keep under super admin</option>
+            {users.map((user) => (
+              <option key={user.id} value={user.id}>{user.name} • {user.email}</option>
+            ))}
+          </Select>
         </div>
       ) : null}
 

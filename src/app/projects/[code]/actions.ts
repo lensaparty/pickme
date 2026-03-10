@@ -3,10 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { requireAdminAccess } from "@/lib/auth";
+import { canAccessProject, requireAdminAccess } from "@/lib/auth";
 import { logError, logInfo, logWarn } from "@/lib/logger";
 import { deleteProjectByCode, getProjectByCode, updateProjectByCode } from "@/lib/project-store";
 import { buildClientPath } from "@/lib/project-utils";
+import { getUserById } from "@/lib/user-store";
 
 export type ManageProjectFormState = {
   error?: string;
@@ -22,9 +23,10 @@ export async function updateProjectSettingsAction(
   _prevState: ManageProjectFormState,
   formData: FormData,
 ): Promise<ManageProjectFormState> {
-  await requireAdminAccess(`/projects/${code}`);
+  const actor = await requireAdminAccess(`/projects/${code}`);
 
   const values = {
+    ownerUserId: readString(formData, "ownerUserId"),
     name: readString(formData, "name"),
     clientName: readString(formData, "clientName"),
     eventType: readString(formData, "eventType"),
@@ -50,7 +52,7 @@ export async function updateProjectSettingsAction(
   }
 
   const existingProject = await getProjectByCode(code);
-  if (!existingProject) {
+  if (!existingProject || !canAccessProject(actor, existingProject)) {
     await logWarn("project.update.not_found", { code });
     return { error: "Project could not be found while saving updates." };
   }
@@ -60,9 +62,22 @@ export async function updateProjectSettingsAction(
     return { error: "Add a password if private access is enabled." };
   }
 
+  let ownerUserId = existingProject.ownerUserId;
+  if (actor.kind === "super_admin") {
+    ownerUserId = values.ownerUserId || undefined;
+    if (ownerUserId) {
+      const owner = await getUserById(ownerUserId);
+      if (!owner || !owner.isActive) {
+        return { error: "Selected owner account is no longer active." };
+      }
+      ownerUserId = owner.id;
+    }
+  }
+
   let project;
   try {
     project = await updateProjectByCode(code, {
+      ownerUserId,
       name: values.name,
       clientName: values.clientName,
       eventType: values.eventType || "Photo Session",
@@ -87,6 +102,7 @@ export async function updateProjectSettingsAction(
 
   await logInfo("project.update.success", {
     code: project.code,
+    ownerUserId: project.ownerUserId,
     passwordProtected: project.passwordProtected,
     selectionLimit: project.selectionLimit,
   });
@@ -103,7 +119,13 @@ export async function updateProjectSettingsAction(
 }
 
 export async function deleteProjectAction(code: string) {
-  await requireAdminAccess(`/projects/${code}`);
+  const actor = await requireAdminAccess(`/projects/${code}`);
+  const existingProject = await getProjectByCode(code);
+  if (!existingProject || !canAccessProject(actor, existingProject)) {
+    await logWarn("project.delete.not_found", { code });
+    redirect("/");
+  }
+
   const deleted = await deleteProjectByCode(code);
   if (!deleted) {
     await logWarn("project.delete.not_found", { code });

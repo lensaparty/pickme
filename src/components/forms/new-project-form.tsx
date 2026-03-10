@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useMemo, useState } from "react";
 import { useFormStatus } from "react-dom";
 import {
   Link2,
@@ -21,12 +21,14 @@ import { FormError } from "@/components/ui/form-error";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { AuthActor, User } from "@/lib/types";
 import { Field } from "./field";
 import { FormSection } from "./form-section";
 
 const initialState = {
   error: "",
   values: {
+    ownerUserId: "",
     name: "Luna & Arya Wedding",
     clientName: "Luna Prameswari",
     eventType: "Wedding",
@@ -69,10 +71,11 @@ function SubmitButton() {
   );
 }
 
-export function NewProjectForm() {
+export function NewProjectForm({ actor, users }: { actor: AuthActor; users: User[] }) {
   const [state, formAction] = useActionState(createProjectAction, initialState);
   const [formValues, setFormValues] = useState(() => ({
     ...initialState.values,
+    ownerUserId: actor.kind === "super_admin" ? users[0]?.id || "" : actor.user.id,
     welcomeMessage: buildWelcomeMessage({
       clientName: initialState.values.clientName,
       selectionLimit: initialState.values.selectionLimit,
@@ -82,6 +85,11 @@ export function NewProjectForm() {
   const [passwordProtected, setPasswordProtected] = useState(true);
   const [allowDownloads, setAllowDownloads] = useState(true);
   const [welcomeMessageTouched, setWelcomeMessageTouched] = useState(false);
+
+  const ownerLabel = useMemo(() => {
+    if (actor.kind === "admin") return actor.user.name;
+    return users.find((user) => user.id === formValues.ownerUserId)?.name || "Unassigned";
+  }, [actor, formValues.ownerUserId, users]);
 
   function updateField(name: keyof typeof initialState.values, value: string) {
     setFormValues((current) => ({
@@ -133,6 +141,19 @@ export function NewProjectForm() {
           description="Start with the essentials only. This should feel closer to setting a scene than filling a system."
         >
           <FormError message={state.error} />
+          {actor.kind === "super_admin" && users.length > 0 ? (
+            <div className="rounded-[28px] border border-white/8 bg-white/4 p-4 sm:p-5">
+              <Field label="Project owner" hint="Choose which admin workspace this project should live inside.">
+                <Select name="ownerUserId" value={formValues.ownerUserId} onChange={(event) => updateField("ownerUserId", event.target.value)}>
+                  {users.map((user) => (
+                    <option key={user.id} value={user.id}>{user.name} • {user.email}</option>
+                  ))}
+                </Select>
+              </Field>
+            </div>
+          ) : (
+            <input type="hidden" name="ownerUserId" value={formValues.ownerUserId} />
+          )}
           <div className="grid gap-4 md:grid-cols-2">
             <Field label="Project name" hint="A clean internal title for your dashboard.">
               <Input name="name" value={formValues.name} onChange={(event) => updateField("name", event.target.value)} />
@@ -260,14 +281,10 @@ export function NewProjectForm() {
                     </span>
                   </label>
                   <label className="flex items-start gap-3">
-                    <Checkbox
-                      name="allowDownloads"
-                      checked={allowDownloads}
-                      onCheckedChange={(checked) => updateAllowDownloads(checked === true)}
-                    />
+                    <Checkbox name="allowDownloads" checked={allowDownloads} onCheckedChange={(checked) => updateAllowDownloads(checked === true)} />
                     <span className="space-y-1">
-                      <span className="block text-sm font-medium text-white">Allow downloads beside selection</span>
-                      <span className="block text-sm leading-6 text-stone-500">Lets clients browse, select, or download without adding friction.</span>
+                      <span className="block text-sm font-medium text-white">Allow downloads</span>
+                      <span className="block text-sm leading-6 text-stone-500">Keep direct downloads available alongside photo selection.</span>
                     </span>
                   </label>
                 </div>
@@ -277,59 +294,55 @@ export function NewProjectForm() {
         </FormSection>
       </div>
 
-      <div className="space-y-5 xl:sticky xl:top-6 xl:self-start">
-        <Card className="overflow-hidden">
-          <CardContent className="p-6">
-            <Badge tone="warning">PickMe by Lensaparty</Badge>
-            <div className="mt-4 space-y-3">
-              <h3 className="font-display text-4xl leading-none text-white">Create a polished client handoff.</h3>
-              <p className="text-sm leading-7 text-stone-400">
+      <div className="space-y-5">
+        <Card className="sticky top-6 overflow-hidden">
+          <CardContent className="space-y-5 p-5 sm:p-6">
+            <div>
+              <Badge tone="warning">PickMe by Lensaparty</Badge>
+              <h2 className="mt-4 font-display text-[2rem] leading-[0.98] text-white sm:text-[2.45rem]">Create a polished client handoff.</h2>
+              <p className="mt-3 text-[15px] leading-6 text-stone-400 sm:text-sm sm:leading-7">
                 Luxury photo workflow, built for modern photographers. Keep the setup calm, then send a link that already feels finished.
               </p>
             </div>
 
-            <div className="mt-6 rounded-[28px] border border-white/8 bg-[radial-gradient(circle_at_top,rgba(248,217,139,0.14),transparent_40%),rgba(255,255,255,0.03)] p-5">
-              <div className="flex items-center gap-3">
-                <div className="rounded-2xl bg-amber-200/16 p-2 text-amber-100">
+            <div className="space-y-3 rounded-[28px] border border-white/8 bg-[radial-gradient(circle_at_top,rgba(248,217,139,0.14),transparent_42%),rgba(255,255,255,0.03)] p-4">
+              <div className="flex items-start gap-3">
+                <div className="rounded-2xl bg-amber-200/14 p-2 text-amber-100">
                   <Sparkles className="h-4 w-4" />
                 </div>
                 <div>
-                  <p className="text-sm text-stone-400">Share path</p>
-                  <p className="text-sm font-medium text-white">/client/{formValues.clientCode}</p>
+                  <p className="text-sm font-medium text-white">Share path</p>
+                  <p className="mt-1 text-sm leading-6 text-stone-400 break-all">/client/{formValues.clientCode || "preview-code"}</p>
                 </div>
               </div>
-              <div className="mt-5 grid gap-2.5 text-sm text-stone-300">
-                <div className="rounded-2xl border border-white/8 bg-black/20 px-4 py-3">Selection limit: {formValues.selectionLimit || "0"} photos</div>
-                <div className="rounded-2xl border border-white/8 bg-black/20 px-4 py-3">Client handoff sent through WhatsApp</div>
-                <div className="rounded-2xl border border-white/8 bg-black/20 px-4 py-3">
-                  {passwordProtected
-                    ? `Password protection enabled${formValues.password ? `: ${formValues.password}` : ""}`
-                    : "Password protection stays optional"}
-                </div>
-                <div className="rounded-2xl border border-white/8 bg-black/20 px-4 py-3">
-                  {allowDownloads ? "Downloads stay available for clients" : "Selection only, without downloads"}
-                </div>
+              <div className="rounded-[22px] border border-white/8 bg-black/20 px-4 py-3 text-sm text-stone-300">
+                Selection limit: {formValues.selectionLimit || "0"} photos
+              </div>
+              <div className="rounded-[22px] border border-white/8 bg-black/20 px-4 py-3 text-sm text-stone-300">
+                Assigned workspace: {ownerLabel}
+              </div>
+              <div className="rounded-[22px] border border-white/8 bg-black/20 px-4 py-3 text-sm text-stone-300">
+                {allowDownloads ? "Client handoff sent through WhatsApp" : "Selection-only flow with no direct downloads"}
+              </div>
+              <div className="rounded-[22px] border border-white/8 bg-black/20 px-4 py-3 text-sm text-stone-300">
+                {passwordProtected ? "Password protection stays enabled" : "Open entry without a password gate"}
               </div>
             </div>
 
-            <div className="mt-6 flex flex-col gap-3">
-              <SubmitButton />
-              <Button variant="ghost" className="w-full" type="button">
-                Save for later
-              </Button>
-            </div>
+            <SubmitButton />
+            <Button variant="ghost" className="w-full" type="button">Save for later</Button>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="space-y-4 p-6">
+          <CardContent className="space-y-4 p-5 sm:p-6">
             <div className="flex items-start gap-3">
               <div className="rounded-2xl bg-emerald-500/14 p-2 text-emerald-200">
                 <ShieldCheck className="h-4 w-4" />
               </div>
               <div>
                 <p className="text-sm font-medium text-white">Refined setup</p>
-                <p className="mt-1 text-sm leading-6 text-stone-400">Core details are surfaced first. Optional controls stay quiet until you need them.</p>
+                <p className="mt-1 text-sm leading-6 text-stone-500">Core details are surfaced first. Optional controls stay quiet until you need them.</p>
               </div>
             </div>
             <div className="flex items-start gap-3">
@@ -338,11 +351,11 @@ export function NewProjectForm() {
               </div>
               <div>
                 <p className="text-sm font-medium text-white">Luxury, still usable</p>
-                <p className="mt-1 text-sm leading-6 text-stone-400">The page keeps the same calm visual language as the dashboard, but makes the setup feel lighter and easier to finish.</p>
+                <p className="mt-1 text-sm leading-6 text-stone-500">The page keeps the same calm visual language as the dashboard, but makes the setup feel lighter and easier to finish.</p>
               </div>
             </div>
-            <div className="rounded-[24px] border border-white/8 bg-white/4 p-4 text-sm leading-6 text-stone-400">
-              When you create the project, PickMe validates the Drive source, preserves the selection cap, and prepares a polished success state ready to share.
+            <div className="rounded-[24px] border border-white/8 bg-white/4 p-4 text-sm leading-6 text-stone-500">
+              When you create the project, PickMe validates the Drive source, preserves the selection cap, and prepares a polished share page ready to send.
             </div>
           </CardContent>
         </Card>

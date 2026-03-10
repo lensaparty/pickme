@@ -6,7 +6,7 @@ import { Topbar } from "@/components/layout/topbar";
 import { ProjectSuccessActions } from "@/components/projects/project-success-actions";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { readProjectPassword, requireAdminAccess } from "@/lib/auth";
+import { canAccessProject, readProjectPassword, requireAdminAccess } from "@/lib/auth";
 import { buildClientPath, buildProjectInviteUrl, formatDisplayDate } from "@/lib/project-utils";
 import { getProjectByCode, getProjects } from "@/lib/project-store";
 
@@ -15,11 +15,13 @@ export default async function ProjectSuccessPage({
 }: {
   searchParams: Promise<{ code?: string }>;
 }) {
-  await requireAdminAccess("/projects/success");
+  const actor = await requireAdminAccess("/projects/success");
   const { code } = await searchParams;
-  const project = code ? await getProjectByCode(code) : (await getProjects())[0];
+  const allProjects = await getProjects();
+  const visibleProjects = actor.kind === "super_admin" ? allProjects : allProjects.filter((project) => canAccessProject(actor, project));
+  const project = code ? await getProjectByCode(code) : visibleProjects[0];
 
-  if (!project) {
+  if (!project || !canAccessProject(actor, project)) {
     notFound();
   }
 

@@ -3,10 +3,11 @@ import { notFound } from "next/navigation";
 import { Topbar } from "@/components/layout/topbar";
 import { AppShell } from "@/components/layout/app-shell";
 import { ProjectManageWorkspace } from "@/components/projects/project-manage-workspace";
-import { readProjectPassword, requireAdminAccess } from "@/lib/auth";
+import { canAccessProject, readProjectPassword, requireAdminAccess } from "@/lib/auth";
 import { getProjectGallery } from "@/lib/project-gallery";
 import { buildClientPath, buildProjectInviteMessage, buildProjectInviteUrl } from "@/lib/project-utils";
 import { getProjectByCode } from "@/lib/project-store";
+import { getUsers } from "@/lib/user-store";
 
 export default async function ManageProjectPage({
   params,
@@ -14,10 +15,10 @@ export default async function ManageProjectPage({
   params: Promise<{ code: string }>;
 }) {
   const { code } = await params;
-  await requireAdminAccess(`/projects/${code}`);
+  const actor = await requireAdminAccess(`/projects/${code}`);
   const project = await getProjectByCode(code);
 
-  if (!project) {
+  if (!project || !canAccessProject(actor, project)) {
     notFound();
   }
 
@@ -33,12 +34,16 @@ export default async function ManageProjectPage({
       : project;
   const inviteMessage = buildProjectInviteMessage(inviteProject, clientLink);
   const inviteUrl = buildProjectInviteUrl(inviteProject, clientLink);
+  const users = await getUsers();
+  const activeAdmins = users.filter((user) => user.isActive);
 
   return (
     <AppShell>
       <Topbar />
       <ProjectManageWorkspace
+        actor={actor}
         project={project}
+        users={activeAdmins}
         selectedPhotos={selectedPhotos}
         clientPath={clientPath}
         reviewPath={`${clientPath}/review`}

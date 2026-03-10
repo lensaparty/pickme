@@ -8,6 +8,7 @@ import { logError, logInfo, logWarn } from "@/lib/logger";
 import { createProject } from "@/lib/project-store";
 import { extractDriveFolderId, generateShareCode } from "@/lib/project-utils";
 import { NewProjectInput } from "@/lib/types";
+import { getUserById } from "@/lib/user-store";
 
 export type CreateProjectFormState = {
   error?: string;
@@ -22,9 +23,10 @@ export async function createProjectAction(
   _prevState: CreateProjectFormState,
   formData: FormData,
 ): Promise<CreateProjectFormState> {
-  await requireAdminAccess("/projects/new");
+  const actor = await requireAdminAccess("/projects/new");
 
   const values = {
+    ownerUserId: readString(formData, "ownerUserId"),
     name: readString(formData, "name"),
     clientName: readString(formData, "clientName"),
     eventType: readString(formData, "eventType"),
@@ -61,7 +63,19 @@ export async function createProjectAction(
     return { error: "Password protection is enabled, so a password is required.", values };
   }
 
+  let ownerUserId: string | undefined;
+  if (actor.kind === "admin") {
+    ownerUserId = actor.user.id;
+  } else if (values.ownerUserId) {
+    const owner = await getUserById(values.ownerUserId);
+    if (!owner || !owner.isActive) {
+      return { error: "Selected owner account is no longer active.", values };
+    }
+    ownerUserId = owner.id;
+  }
+
   const input: NewProjectInput = {
+    ownerUserId,
     name: values.name,
     clientName: values.clientName,
     eventType: values.eventType || "Photo Session",
@@ -82,6 +96,7 @@ export async function createProjectAction(
     const project = await createProject(input);
     await logInfo("project.create.success", {
       code: project.code,
+      ownerUserId: project.ownerUserId,
       passwordProtected: project.passwordProtected,
       selectionLimit: project.selectionLimit,
     });

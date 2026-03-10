@@ -46,6 +46,7 @@ export async function updateProjectByCode(
     Pick<
       Project,
       | "name"
+      | "ownerUserId"
       | "clientName"
       | "eventType"
       | "expiresAt"

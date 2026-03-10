@@ -6,10 +6,12 @@ import {
   createHash,
   createHmac,
   randomBytes,
+  scryptSync,
   timingSafeEqual,
 } from "node:crypto";
 
 const ENCRYPTED_PREFIX = "enc:v1:";
+const PASSWORD_HASH_PREFIX = "pwd:v1:";
 
 function getAppSecret() {
   const secret = process.env.APP_SECRET?.trim();
@@ -81,3 +83,30 @@ export function createSignedToken(scope: string, value: string) {
   return createHmac("sha256", getAppSecret()).update(`${scope}:${value}`).digest("base64url");
 }
 
+export function isPasswordHash(value: string) {
+  return value.startsWith(PASSWORD_HASH_PREFIX);
+}
+
+export function hashPassword(value: string) {
+  if (!value) return "";
+  if (isPasswordHash(value)) return value;
+
+  const salt = randomBytes(16);
+  const derived = scryptSync(value, salt, 64);
+  return `${PASSWORD_HASH_PREFIX}${encode(salt)}.${encode(derived)}`;
+}
+
+export function verifyPasswordHash(value: string, hash: string) {
+  if (!value || !hash) return false;
+  if (!isPasswordHash(hash)) return secureCompare(value, hash);
+
+  const payload = hash.slice(PASSWORD_HASH_PREFIX.length);
+  const [saltEncoded, derivedEncoded] = payload.split(".");
+  if (!saltEncoded || !derivedEncoded) return false;
+
+  const salt = toBuffer(saltEncoded);
+  const expected = toBuffer(derivedEncoded);
+  const candidate = scryptSync(value, salt, expected.length);
+
+  return secureCompare(encode(candidate), encode(expected));
+}

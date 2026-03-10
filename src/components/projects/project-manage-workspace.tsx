@@ -28,7 +28,7 @@ import {
   getProjectWorkflowState,
   isExpiringSoon,
 } from "@/lib/project-utils";
-import { Photo, Project } from "@/lib/types";
+import { AuthActor, Photo, Project, User } from "@/lib/types";
 
 const toneByWorkflow = {
   awaiting_client: "warning",
@@ -38,14 +38,18 @@ const toneByWorkflow = {
 } as const;
 
 export function ProjectManageWorkspace({
+  actor,
   project,
+  users,
   selectedPhotos,
   clientPath,
   reviewPath,
   inviteMessage,
   inviteUrl,
 }: {
+  actor: AuthActor;
   project: Project;
+  users: User[];
   selectedPhotos: Photo[];
   clientPath: string;
   reviewPath: string;
@@ -57,6 +61,9 @@ export function ProjectManageWorkspace({
   const expiringSoon = isExpiringSoon(project);
   const daysUntilExpiry = getDaysUntilExpiry(project);
   const deleteAction = deleteProjectAction.bind(null, project.code);
+  const ownerName = project.ownerUserId
+    ? users.find((user) => user.id === project.ownerUserId)?.name || "Assigned admin"
+    : "Super admin";
 
   return (
     <div className="space-y-6 sm:space-y-8">
@@ -70,6 +77,7 @@ export function ProjectManageWorkspace({
                   <Badge tone={toneByWorkflow[workflow]}>{getProjectWorkflowLabel(workflow)}</Badge>
                   {expiringSoon ? <Badge tone="danger">Expiring soon</Badge> : null}
                   {project.passwordProtected ? <Badge>Private gallery</Badge> : null}
+                  <Badge>{`Owner: ${ownerName}`}</Badge>
                 </div>
                 <div className="space-y-2.5 sm:space-y-3">
                   <div className="space-y-2">
@@ -235,7 +243,7 @@ export function ProjectManageWorkspace({
                 </p>
               </div>
               <div className="mt-6">
-                <ProjectSettingsForm project={project} />
+                <ProjectSettingsForm project={project} actor={actor} users={users} />
               </div>
             </CardContent>
           </Card>

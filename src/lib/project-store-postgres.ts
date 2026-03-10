@@ -3,9 +3,8 @@ import "server-only";
 import postgres from "postgres";
 
 import { buildProjectRecord, storeProjectPassword } from "@/lib/project-store-shared";
-import {
-  getProjectsFromFileStore,
-} from "@/lib/project-store-file";
+import { getProjectsFromFileStore } from "@/lib/project-store-file";
+import { readUsersFromFileStore } from "@/lib/user-store-file";
 import { normalizeShareCode } from "@/lib/project-utils";
 import { NewProjectInput, Project, ProjectSelectionPayload } from "@/lib/types";
 
@@ -22,6 +21,7 @@ function mapProject(row: Record<string, unknown>): Project {
   return {
     id: String(row.id),
     code: String(row.code),
+    ownerUserId: row.owner_user_id ? String(row.owner_user_id) : undefined,
     name: String(row.name),
     clientName: String(row.client_name),
     eventType: String(row.event_type),
@@ -49,6 +49,7 @@ async function insertProject(project: Project) {
     insert into projects (
       id,
       code,
+      owner_user_id,
       name,
       client_name,
       event_type,
@@ -71,6 +72,7 @@ async function insertProject(project: Project) {
     ) values (
       ${project.id},
       ${project.code},
+      ${project.ownerUserId || null},
       ${project.name},
       ${project.clientName},
       ${project.eventType},
@@ -100,9 +102,23 @@ async function ensureDatabaseReady() {
 
   initPromise = (async () => {
     await sql`
+      create table if not exists users (
+        id text primary key,
+        name text not null,
+        email text not null unique,
+        password_hash text not null,
+        role text not null,
+        is_active boolean not null default true,
+        created_at timestamptz not null,
+        updated_at timestamptz not null
+      )
+    `;
+
+    await sql`
       create table if not exists projects (
         id text primary key,
         code text not null unique,
+        owner_user_id text,
         name text not null,
         client_name text not null,
         event_type text not null,
@@ -125,8 +141,22 @@ async function ensureDatabaseReady() {
       )
     `;
 
-    const existing = await sql<{ count: string }[]>`select count(*) as count from projects`;
-    if (Number(existing[0]?.count || 0) > 0) return;
+    await sql`alter table projects add column if not exists owner_user_id text`;
+
+    const existingUsers = await sql<{ count: string }[]>`select count(*) as count from users`;
+    if (Number(existingUsers[0]?.count || 0) === 0) {
+      const fileUsers = await readUsersFromFileStore();
+      for (const user of fileUsers) {
+        await sql`
+          insert into users (id, name, email, password_hash, role, is_active, created_at, updated_at)
+          values (${user.id}, ${user.name}, ${user.email}, ${user.passwordHash}, ${user.role}, ${user.isActive}, ${user.createdAt}, ${user.updatedAt})
+          on conflict (email) do nothing
+        `;
+      }
+    }
+
+    const existingProjects = await sql<{ count: string }[]>`select count(*) as count from projects`;
+    if (Number(existingProjects[0]?.count || 0) > 0) return;
 
     const fileProjects = await getProjectsFromFileStore();
     for (const project of fileProjects) {
@@ -186,6 +216,7 @@ export async function updateProjectByCodeInPostgres(
     Pick<
       Project,
       | "name"
+      | "ownerUserId"
       | "clientName"
       | "eventType"
       | "expiresAt"
@@ -212,6 +243,7 @@ export async function updateProjectByCodeInPostgres(
     update projects
     set
       name = ${nextProject.name},
+      owner_user_id = ${nextProject.ownerUserId || null},
       client_name = ${nextProject.clientName},
       event_type = ${nextProject.eventType},
       expires_at = ${nextProject.expiresAt},

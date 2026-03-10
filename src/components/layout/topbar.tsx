@@ -1,12 +1,14 @@
 import Link from "next/link";
-import { Camera, LayoutDashboard, Sparkles } from "lucide-react";
+import { Camera, LayoutDashboard, ShieldCheck, Sparkles, Users } from "lucide-react";
 
 import { logoutAdminAction } from "@/app/admin/actions";
 import { Button } from "@/components/ui/button";
-import { isAdminAuthEnabled } from "@/lib/auth";
+import { getAuthActor, getActorLabel, isSuperAdminAuthEnabled } from "@/lib/auth";
 
-export function Topbar() {
-  const showLogout = isAdminAuthEnabled();
+export async function Topbar() {
+  const actor = await getAuthActor();
+  const showLogout = Boolean(actor) && (isSuperAdminAuthEnabled() || actor?.kind === "admin");
+  const showUsers = actor?.kind === "super_admin";
 
   return (
     <header className="mb-5 flex flex-col gap-3 rounded-[24px] border border-white/10 bg-black/20 px-3.5 py-3 shadow-[0_20px_60px_rgba(0,0,0,0.18)] backdrop-blur-xl sm:mb-8 sm:gap-4 sm:rounded-[30px] sm:px-6 sm:py-4 sm:flex-row sm:items-center sm:justify-between">
@@ -20,7 +22,14 @@ export function Topbar() {
             <h1 className="font-display text-[1.45rem] leading-none text-white sm:text-[2rem]">Luxury photo workflow</h1>
             <Sparkles className="hidden h-4 w-4 text-amber-200 sm:block" />
           </div>
-          <p className="mt-0.5 text-[13px] text-stone-500 sm:mt-1 sm:text-sm">Built for modern photographers.</p>
+          <div className="mt-0.5 flex flex-wrap items-center gap-2 text-[13px] text-stone-500 sm:mt-1 sm:text-sm">
+            <span>Built for modern photographers.</span>
+            {actor ? (
+              <span className="inline-flex items-center gap-1 rounded-full border border-white/8 bg-white/5 px-2.5 py-1 text-[11px] uppercase tracking-[0.22em] text-stone-400">
+                <ShieldCheck className="h-3.5 w-3.5" /> {getActorLabel(actor)}
+              </span>
+            ) : null}
+          </div>
         </div>
       </div>
       <div className="grid grid-cols-2 gap-2.5 sm:flex sm:items-center sm:gap-3">
@@ -32,8 +41,15 @@ export function Topbar() {
         <Link href="/projects/new">
           <Button className="h-10 w-full px-4 text-sm sm:h-11 sm:w-auto sm:px-5">Start a project</Button>
         </Link>
+        {showUsers ? (
+          <Link href="/admin/users" className="col-span-2 sm:col-span-1">
+            <Button variant="ghost" size="sm" className="w-full sm:w-auto">
+              <Users className="h-4 w-4" /> Admin users
+            </Button>
+          </Link>
+        ) : null}
         {showLogout ? (
-          <form action={logoutAdminAction} className="col-span-2 sm:col-span-1">
+          <form action={logoutAdminAction} className={showUsers ? "col-span-2 sm:col-span-1" : "col-span-2 sm:col-span-1"}>
             <Button variant="ghost" size="sm" className="w-full sm:w-auto">
               Sign out
             </Button>

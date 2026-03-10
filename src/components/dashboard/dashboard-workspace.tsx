@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { getDaysUntilExpiry, getProjectWorkflowState, isExpiringSoon } from "@/lib/project-utils";
-import { Project } from "@/lib/types";
+import { AuthActor, Project } from "@/lib/types";
 
 function EmptyState({ title, body }: { title: string; body: string }) {
   return (
@@ -24,7 +24,7 @@ function EmptyState({ title, body }: { title: string; body: string }) {
   );
 }
 
-export function DashboardWorkspace({ projects }: { projects: Project[] }) {
+export function DashboardWorkspace({ projects, actor }: { projects: Project[]; actor: AuthActor }) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [sortBy, setSortBy] = useState("priority");
@@ -238,7 +238,7 @@ export function DashboardWorkspace({ projects }: { projects: Project[] }) {
           <div>
             <h3 className="text-2xl font-semibold text-white">Project queue</h3>
             <p className="mt-1 text-[14px] leading-6 text-stone-400 sm:text-[15px] sm:leading-7">
-              Find what needs attention and step back into work quickly.
+              {actor.kind === "super_admin" ? "Find what needs attention and step back into work quickly." : "Step back into the projects assigned to your own client workspace."}
             </p>
           </div>
           <p className="text-[14px] text-stone-500 sm:text-[15px]">{totalVisible} visible project{totalVisible === 1 ? "" : "s"}</p>

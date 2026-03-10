@@ -1,8 +1,36 @@
 export type ProjectStatus = "active" | "awaiting" | "expired";
+export type UserRole = "admin";
+
+export type User = {
+  id: string;
+  name: string;
+  email: string;
+  passwordHash: string;
+  role: UserRole;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type AuthActor =
+  | {
+      kind: "super_admin";
+      id: "super_admin";
+      name: "Super admin";
+      email: "";
+    }
+  | {
+      kind: "admin";
+      id: string;
+      name: string;
+      email: string;
+      user: User;
+    };
 
 export type Project = {
   id: string;
   code: string;
+  ownerUserId?: string;
   name: string;
   clientName: string;
   eventType: string;
@@ -25,6 +53,7 @@ export type Project = {
 };
 
 export type NewProjectInput = {
+  ownerUserId?: string;
   name: string;
   clientName: string;
   eventType: string;
@@ -37,6 +66,21 @@ export type NewProjectInput = {
   password?: string;
   passwordProtected: boolean;
   allowDownloads: boolean;
+};
+
+export type NewUserInput = {
+  name: string;
+  email: string;
+  password: string;
+  role?: UserRole;
+};
+
+export type UserPasswordUpdate = {
+  password: string;
+};
+
+export type UserUpdateInput = Partial<Pick<User, "name" | "isActive">> & {
+  password?: string;
 };
 
 export type Folder = {
