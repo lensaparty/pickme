@@ -3,8 +3,8 @@ import "server-only";
 import postgres from "postgres";
 
 import { buildProjectRecord, storeProjectPassword } from "@/lib/project-store-shared";
-import { getProjectsFromFileStore } from "@/lib/project-store-file";
-import { readUsersFromFileStore } from "@/lib/user-store-file";
+import { readProjectsSnapshot } from "@/lib/project-store-file";
+import { readUsersSnapshot } from "@/lib/user-store-file";
 import { normalizeShareCode } from "@/lib/project-utils";
 import { NewProjectInput, Project, ProjectSelectionPayload } from "@/lib/types";
 
@@ -145,7 +145,7 @@ async function ensureDatabaseReady() {
 
     const existingUsers = await sql<{ count: string }[]>`select count(*) as count from users`;
     if (Number(existingUsers[0]?.count || 0) === 0) {
-      const fileUsers = await readUsersFromFileStore();
+      const fileUsers = await readUsersSnapshot();
       for (const user of fileUsers) {
         await sql`
           insert into users (id, name, email, password_hash, role, is_active, created_at, updated_at)
@@ -158,7 +158,7 @@ async function ensureDatabaseReady() {
     const existingProjects = await sql<{ count: string }[]>`select count(*) as count from projects`;
     if (Number(existingProjects[0]?.count || 0) > 0) return;
 
-    const fileProjects = await getProjectsFromFileStore();
+    const fileProjects = await readProjectsSnapshot();
     for (const project of fileProjects) {
       await insertProject(project);
     }

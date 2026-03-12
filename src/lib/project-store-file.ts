@@ -29,6 +29,15 @@ async function writeProjects(projects: Project[]) {
   await rename(tempFile, projectsFile);
 }
 
+export async function readProjectsSnapshot(): Promise<Project[]> {
+  try {
+    const raw = await readFile(projectsFile, "utf8");
+    return JSON.parse(raw) as Project[];
+  } catch {
+    return [];
+  }
+}
+
 export async function readProjectsFromFileStore(): Promise<Project[]> {
   await ensureProjectsFile();
   const raw = await readFile(projectsFile, "utf8");

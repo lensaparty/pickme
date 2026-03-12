@@ -28,6 +28,15 @@ async function writeUsers(users: User[]) {
   await rename(tempFile, usersFile);
 }
 
+export async function readUsersSnapshot(): Promise<User[]> {
+  try {
+    const raw = await readFile(usersFile, "utf8");
+    return JSON.parse(raw) as User[];
+  } catch {
+    return [];
+  }
+}
+
 export async function readUsersFromFileStore(): Promise<User[]> {
   await ensureUsersFile();
   const raw = await readFile(usersFile, "utf8");

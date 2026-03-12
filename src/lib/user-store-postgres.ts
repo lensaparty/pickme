@@ -3,7 +3,7 @@ import "server-only";
 import postgres from "postgres";
 
 import { applyUserUpdates, buildUserRecord } from "@/lib/project-store-shared";
-import { readUsersFromFileStore } from "@/lib/user-store-file";
+import { readUsersSnapshot } from "@/lib/user-store-file";
 import { NewUserInput, User, UserUpdateInput } from "@/lib/types";
 
 const DATABASE_URL = process.env.DATABASE_URL?.trim() || "";
@@ -73,7 +73,7 @@ async function ensureDatabaseReady() {
     const existing = await sql<{ count: string }[]>`select count(*) as count from users`;
     if (Number(existing[0]?.count || 0) > 0) return;
 
-    const fileUsers = await readUsersFromFileStore();
+    const fileUsers = await readUsersSnapshot();
     for (const user of fileUsers) {
       await insertUser(user);
     }
